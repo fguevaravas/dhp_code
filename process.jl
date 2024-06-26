@@ -1,6 +1,6 @@
 import Literate
 
-inputs = ["example3"]
+inputs = ["example2","example3"]
 for i ∈ inputs
   Literate.notebook("$(i).jl",i)
 end
