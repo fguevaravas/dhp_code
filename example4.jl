@@ -36,6 +36,6 @@ function condest(ε)
 end
 εs = 10.0 .^ (-1:-0.5:-16)
 cs = condest.(εs)
-plot(εs,cs,xaxis=:log,yaxis=:log,
+plot(εs,cs,xaxis=:log10,yaxis=:log10,
 xlabel="ε",
 ylabel="Jacobian conditioning",legend=:none)
