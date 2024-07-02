@@ -17,17 +17,19 @@ for i=1:(Nx-1), j=1:(Ny-1)
     DE[idxm1[i,j],idx[i,j]] = -1; DE[idxm1[i,j],idx[i+1,j+1]]=1;
 end
 ∇ = [ I(Ny) ⊗ D(Nx) # horizontal edges
-      D(Ny) ⊗ I(Nx) # vertical edges
-      DE ]
+      D(Ny) ⊗ I(Nx) ]# vertical edges
+      #DE ]
 
-𝐁 = findall( (x[:].==0) .| (x[:].==Nx-1) )
+𝐁 = findall( (x[:].==0) .| (x[:].==Nx-1) .| (y[:].==0) .| (y[:].==Ny-1))
 𝐈 = setdiff(1:Nx*Ny,𝐁)
 n𝐈 =length(𝐈); n𝐁 = length(𝐁); 
 n𝐄, n𝐕 = size(∇)
 R𝐈 = I(n𝐕)[𝐈,:]  # restriction to interior nodes
+𝐈𝐈edges = [ i for (i, r) in enumerate(eachrow(∇)) if findall(abs.(r).>0) ⊆ 𝐈 ]'
+edgemask = [i ∈ 𝐈𝐈edges for i ∈ 1:n𝐄]
 
-f = (x[𝐁] .== Nx-1) - (x[𝐁] .== 0)# boundary condition
-#f = x[𝐁] + y[𝐁]/2
+
+f = (x[𝐁] .== Nx-1) + (y[𝐁] .== Ny-1) # boundary condition
 σ = ones(n𝐄);
 
 # ## Graph plotting
@@ -91,8 +93,7 @@ plot!(deter,label="deter")
 # ## Plots of deterministic vs stochastic dissipated power
 function plot_edge_quantity(f;lw=6)
   p = plot()
-  maxf = maximum(f);
-  minf = minimum(f);
+  minf, maxf = extrema(f)
   for (i, r) in enumerate(eachrow(∇))
     i1, i2 = findall(abs.(r) .> 0)
     if (maxf-minf)/(maxf+minf) < 1e-6
@@ -105,8 +106,14 @@ function plot_edge_quantity(f;lw=6)
   p=plot!(legend=:none, aspect_ratio=:equal, axis=false, grid=false)
   return p
 end
-plot(
- plot_edge_quantity(ones(n𝐄),lw=3),
- plot_edge_quantity(deter,lw=6),
- plot_edge_quantity(stoch,lw=6),
- layout=(1,3))
+l = @layout [ grid(1,2) a{0.1w} ]
+clims = extrema(edgemask.*deter)
+h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=clims,
+                 xlims=(1,1.1), label="", c=:thermal, framestyle=:none)
+p = plot(
+  plot_edge_quantity(edgemask.*deter,lw=6),
+  plot_edge_quantity(edgemask.*stoch,lw=6),
+  h2, layout=l
+)
+savefig(p,"thermal_noise.png")
+p
