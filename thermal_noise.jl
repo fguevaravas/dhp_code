@@ -9,17 +9,10 @@ Nx = 5; Ny = 5; # number of nodes
 x = (0:(Nx-1))*ones(1,Ny)
 y = ones(Nx)*((0:(Ny-1))') 
 D(N) = [ (i+1==j) - (i==j) for i=1:N-1,j=1:N]
-# diagonal edges
-idx = LinearIndices(x)
-idxm1 = LinearIndices(x[1:Nx-1,1:Ny-1])
-DE = zeros((Nx-1)*(Ny-1),Nx*Ny)
-for i=1:(Nx-1), j=1:(Ny-1)
-    DE[idxm1[i,j],idx[i,j]] = -1; DE[idxm1[i,j],idx[i+1,j+1]]=1;
-end
+## Discrete gradient
 ∇ = [ I(Ny) ⊗ D(Nx) # horizontal edges
-      D(Ny) ⊗ I(Nx) ]# vertical edges
-      #DE ]
-
+      D(Ny) ⊗ I(Nx) # vertical edges
+]
 𝐁 = findall( (x[:].==0) .| (x[:].==Nx-1) .| (y[:].==0) .| (y[:].==Ny-1))
 𝐈 = setdiff(1:Nx*Ny,𝐁)
 n𝐈 =length(𝐈); n𝐁 = length(𝐁); 
@@ -27,7 +20,6 @@ n𝐄, n𝐕 = size(∇)
 R𝐈 = I(n𝐕)[𝐈,:]  # restriction to interior nodes
 𝐈𝐈edges = [ i for (i, r) in enumerate(eachrow(∇)) if findall(abs.(r).>0) ⊆ 𝐈 ]'
 edgemask = [i ∈ 𝐈𝐈edges for i ∈ 1:n𝐄]
-
 
 f = (x[𝐁] .== Nx-1) + (y[𝐁] .== Ny-1) # boundary condition
 σ = ones(n𝐄);
@@ -101,19 +93,22 @@ function plot_edge_quantity(f;lw=6)
     else
       c = get(cgrad(:thermal),(f[i]-minf)/(maxf-minf))
     end
-    plot!([x[i1], x[i2]], [y[i1], y[i2]], linecolor=c, lw=lw)
+    plot!(p,[x[i1], x[i2]], [y[i1], y[i2]], linecolor=c, lw=lw)
   end
-  p=plot!(legend=:none, aspect_ratio=:equal, axis=false, grid=false)
+  plot!(p,legend=:none, aspect_ratio=:equal, axis=false, grid=false)
   return p
 end
 l = @layout [ grid(1,2) a{0.1w} ]
 clims = extrema(edgemask.*deter)
 h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=clims,
                  xlims=(1,1.1), label="", c=:thermal, framestyle=:none)
+blank = plot(foreground_color_subplot=:white,axis=false, grid=false)
+
 p = plot(
   plot_edge_quantity(edgemask.*deter,lw=6),
   plot_edge_quantity(edgemask.*stoch,lw=6),
-  h2, layout=l
+  h2, layout=l,size=(600,300)
 )
+
 savefig(p,"thermal_noise.png")
 p

@@ -1,4 +1,4 @@
-# # Example 2: uniqueness with one single boundary condition
+# # Example 1: uniqueness with one single boundary condition
 # Here we show a graph where one single boundary condition is sufficient
 # to recover conductivities from power data in the linearized sense.
 

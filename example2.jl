@@ -1,4 +1,4 @@
-# # Example 3: non-uniqueness of linearized problem
+# # Example 2: non-uniqueness of linearized problem
 # Here we show a graph where the linearization of the inverse
 # problem of finding the conductivities from power measurements
 # does not admit a unique solution.

@@ -1,4 +1,4 @@
-# # Example 4: ill-posedness
+# # Example 3: ill-posedness
 # We give an example of a graph where the linearized inverse problem can be
 # arbitrarily ill-posed. The reason for this is that there is an edge with
 # gradient that is of order ε which can be made arbitrarily small.
