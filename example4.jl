@@ -2,33 +2,23 @@
 # ## Graph setup
 # First we setup the graph, boundary conditions and 
 # graph Laplacian
-using Plots, LinearAlgebra, Test
-⊗ = kron
-x =  ones(3,1)*[0 1 2]; 
-y = [0;1;2]*ones(1,3);  
-D = [ -1 1 0
-       0 -1 1 ]
-∇ = [ D ⊗ I(3) ;  I(3) ⊗ D ]
-σr = [1,2] ⊗ ones(6)
-σi = [1/2,3] ⊗ ones(6)
-ω = 1/2
-
-𝐁 = [1,2,3,4,6,7,8,9];
-𝐈 = [5];
+using Plots, LinearAlgebra, Test, DataFrames
+x = [1,1,1,1,1] # FIXME
+y = [1,1,1,1,1]
+∇ = [ 1 0 0 0 -1  0
+      0 1 0 0 -1  0
+      0 0 1 0  0 -1
+      0 0 0 1  0 -1
+      0 0 0 0  1 -1 ]
+σr = [1,1,1,1,1]
+σi = [2,2,1,2,2]
+ω = 1
+𝐁 = [1,2,3,4];
+𝐈 = [5,6];
 n𝐈 =length(𝐈); n𝐁 = length(𝐁); 
 n𝐄, n𝐕 = size(∇)
 
-# boundary conditions
-fs = [ 1 1
-       2 2
-       3 3
-       4 2
-       5 2
-       6 1
-       7 2
-       8 3 ]
-
-fs = randn(8,10)
+fs = I(n𝐁)
 L(σ) = ∇'*diagm(σ)*∇;
 
 # ## Graph plotting
@@ -122,9 +112,20 @@ function injectivity_condition(σr,σi,fs)
   return(A)
 end
 
-# ## Note: this seems impossible
-# after more inspection it seems this problem does not admit a unique solution.
-J = jacobian(σr,σi,fs)
-A = injectivity_condition(σr,σi,fs)
-println("rank(real(A)) = ",rank(real(A)))
-heatmap(real(A))
+# ## Some numerical tests for injectivity
+N = 4
+rankJ = zeros(Int64,N)
+rankA = zeros(Int64,N)
+rankrealA = zeros(Int64,N)
+sizeJ = Vector{}(undef,N)
+for j=1:4
+    J = jacobian(σr,σi,fs[:,1:j])
+    A = injectivity_condition(σr,σi,fs[:,1:j])
+    rankJ[j] = rank(J)
+    rankA[j] = rank(A)
+    rankrealA[j] = rank(real(A))
+    sizeJ[j] = size(J)
+end
+
+DataFrame(N=1:4,sizeJ=sizeJ,rankJ=rankJ,rankA=rankA,rankrealA=rankrealA)
+
