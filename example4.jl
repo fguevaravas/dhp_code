@@ -34,7 +34,7 @@ for (i, r) in enumerate(eachrow(∇))
 end
 p=plot!(legend=:none, aspect_ratio=:equal, axis=false, grid=false,size=(300,300))
 
-# ## Jacobian and injectivity test
+# ## Jacobian for one dirichlet boundary condition
 R𝐈= I(n𝐕)[𝐈,:] # restriction to interior nodes
 R𝐁= I(n𝐕)[𝐁,:] # restriction to boundary nodes
 
@@ -71,8 +71,9 @@ Dℒ(σr,σi,u0,u1,u1b) = [
 Dℳ(σr,σi,u0,u1,u1b) = [
  diagm(abs2.(∇*u0))     zeros(n𝐄,n𝐄) 2diagm(σr .* (∇*u0))*∇ zeros(n𝐄,n𝐕)           zeros(n𝐄,n𝐕)
  diagm((∇*u1).*(∇*u1b)) zeros(n𝐄,n𝐄) zeros(n𝐄,n𝐕)           diagm(σr .* (∇*u1b))*∇ diagm(σr .* (∇*u1))*∇
-]
+];
 
+# ## Assemble Jacobian and injectivity matrix for all boundary conditions
 function jacobian(σr,σi,fs)  
   N = size(fs,2) # number of Dirichlet boundary conditions
   ## Solve Dirichlet problems and calculate Jacobians for each boundary condition
@@ -96,10 +97,8 @@ function jacobian(σr,σi,fs)
     𝒜[ (j-1)*3n𝐕 .+ (1:3n𝐕)         , 2n𝐄 .+ (j-1)*3n𝐕 .+ (1:3n𝐕) ] = Dℒs[j][:,2n𝐄 .+ (1:3n𝐕)]
     𝒜[ 3N*n𝐕 .+ (j-1)*2n𝐄 .+ (1:2n𝐄), 2n𝐄 .+ (j-1)*3n𝐕 .+ (1:3n𝐕) ] = Dℳs[j][:,2n𝐄 .+ (1:3n𝐕)]
   end
-
   return 𝒜
-
-end
+end;
 
 ## Assemble matrix for injectivity condition
 function injectivity_condition(σr,σi,fs)
@@ -110,18 +109,21 @@ function injectivity_condition(σr,σi,fs)
     A[(j-1)*n𝐄 .+ (1:n𝐄),:] = -im*diagm(∇*conj(u1))*∇*R𝐈'*inv(L(σr+im*ω*σi)[𝐈,𝐈])*R𝐈*∇'*diagm(∇*u1)
   end
   return(A)
-end
+end;
 
 # ## Some numerical tests for injectivity
+# Here should see that the linearized inverse problem is not injective for $N=1$ and $N=2$, but is for $N=3$ and $N=4$. In this example, the condition number improves (is smaller) with larger $N$. We also include the rank of the complex matrix $A = [A^{(1)};\ldots;A^{(N)}]$ and of its real part. We can see that as a complex matrix $A$ has at least $\sigma' + \jmath\omega_1\sigma''$ in its nullspace.
 N = 4
 rankJ = zeros(Int64,N)
 rankA = zeros(Int64,N)
 rankrealA = zeros(Int64,N)
 condJ = zeros(N)
 sizeJ = Vector{}(undef,N)
+As = Vector{}(undef,N)
 for j=1:4
     J = jacobian(σr,σi,fs[:,1:j])
     A = injectivity_condition(σr,σi,fs[:,1:j])
+    As[j]=A
     rankJ[j] = rank(J)
     rankA[j] = rank(A)
     rankrealA[j] = rank(real(A))
@@ -129,5 +131,13 @@ for j=1:4
     condJ[j] = cond(J)
 end
 
+@testset "Check σ' + ȷωσ'' is in nullspace of A" begin
+  σ = σr+im*ω*σi
+  for j=1:4
+    @test norm(As[j]*σ)/norm(σ) < 1e-10
+  end
+end
+
+## A table summarizing results
 DataFrame(N=1:4,sizeJ=sizeJ,rankJ=rankJ,condJ=condJ,rankA=rankA,rankrealA=rankrealA)
 
