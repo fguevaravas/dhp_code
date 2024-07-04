@@ -3,15 +3,15 @@
 # First we setup the graph, boundary conditions and 
 # graph Laplacian
 using Plots, LinearAlgebra, Test, DataFrames
-x = [1,1,1,1,1] # FIXME
-y = [1,1,1,1,1]
+x = [-1,1,-1,1,0,0]
+y = [1,1,0,0,1,0]
 ∇ = [ 1 0 0 0 -1  0
       0 1 0 0 -1  0
       0 0 1 0  0 -1
       0 0 0 1  0 -1
       0 0 0 0  1 -1 ]
-σr = [1,1,1,1,1]
-σi = [2,2,1,2,2]
+σr = [2,1,1,3,1]
+σi = [2,1,1,2,3]
 ω = 1
 𝐁 = [1,2,3,4];
 𝐈 = [5,6];
@@ -117,6 +117,7 @@ N = 4
 rankJ = zeros(Int64,N)
 rankA = zeros(Int64,N)
 rankrealA = zeros(Int64,N)
+condJ = zeros(N)
 sizeJ = Vector{}(undef,N)
 for j=1:4
     J = jacobian(σr,σi,fs[:,1:j])
@@ -125,7 +126,8 @@ for j=1:4
     rankA[j] = rank(A)
     rankrealA[j] = rank(real(A))
     sizeJ[j] = size(J)
+    condJ[j] = cond(J)
 end
 
-DataFrame(N=1:4,sizeJ=sizeJ,rankJ=rankJ,rankA=rankA,rankrealA=rankrealA)
+DataFrame(N=1:4,sizeJ=sizeJ,rankJ=rankJ,condJ=condJ,rankA=rankA,rankrealA=rankrealA)
 
