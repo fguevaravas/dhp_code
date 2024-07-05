@@ -17,6 +17,7 @@ D(N) = [ (i+1==j) - (i==j) for i=1:N-1,j=1:N]
 n𝐈 =length(𝐈); n𝐁 = length(𝐁); 
 n𝐄, n𝐕 = size(∇)
 R𝐈 = I(n𝐕)[𝐈,:]  # restriction to interior nodes
+R𝐁 = I(n𝐕)[𝐁,:]  # restriction to boundary nodes
 
 x𝐄 = abs.(∇)*x[:]/2; y𝐄 = abs.(∇)*y[:]/2 # edge centers
 
@@ -68,10 +69,8 @@ function plot_edge_quantity(f;lw=6)
 
 # ## Jacobian computation
 ## Forward problem and Jacobian for one measurement
-ℒ(σ,u) = [ 
-        (L(σ)*u0)[𝐈]
-        u0[𝐁]
-]
+ℒ(σ,u) = [ (L(σ)*u)[𝐈]
+            u[𝐁] ]
 ℳ(σ,u) = σ .* abs2.(∇*u)
 
 Dℒ(σ,u) = [ 
@@ -79,16 +78,16 @@ Dℒ(σ,u) = [
     zeros(n𝐁,n𝐄)      R𝐁     
 ]
 
-Dℳ(σ) = [ diagm(abs2.(∇*u0)) 2diagm(σ .* (∇*u0))*∇ ];
+Dℳ(σ,u) = [ diagm(abs2.(∇*u)) 2diagm(σ .* (∇*u))*∇ ];
 ## Assemble forward map
 fwd(σ,us) = [ vcat([ℒ(σ,us[:,j]) for j=1:N]...)
               vcat([ℳ(σ,us[:,j]) for j=1:N]...)
             ]
 
 ## Assemble rhs
-b(fs,Hs) = [ vcat([R𝐁'*fs[:,j] for j=1:N]...)
+rhs(fs,Hs) = [ vcat([R𝐁'*fs[:,j] for j=1:N]...)
              Hs[:]
-    ]
+             ]
 
 ## Assemble Jacobian and injectivity matrix for all boundary conditions
 function jacobian(σ,us)  
@@ -136,12 +135,12 @@ function gauss_newton(R,DR,x0;maxiter=100,tol=1e-4,α=0)
 end
 
 # ## Setup data and residual
-unpack(x)  = (σ=x[1:n𝐄],us=reshape(x[(n𝐄+1):end]),n𝐕,N) # go from x to σ,us
+unpack(x)  = (σ=x[1:n𝐄],us=reshape(x[(n𝐄+1):end],n𝐕,N)) # go from x to σ,us
 pack(σ,us) = vcat(σ,vec(us)) # go from (σ,us) to x
 
 ## true data
 us_true = hcat([ dirsolve(σ_true,f) for f ∈ eachcol(fs)]...)
-Hs_true = hcat([ σ.*abs2.(∇*u) for f ∈ eachcol(us_true)]...)
+Hs_true = hcat([ σ.*abs2.(∇*u) for u ∈ eachcol(us_true)]...)
 
 R(x)  = fwd(unpack(x)...) - b(fs,Hs_true)
 DR(x) = jacobian(unpack(x)...)
@@ -152,4 +151,5 @@ DR(x) = jacobian(unpack(x)...)
 jacobian_test(F,DF,x0,δx) =
  [ norm(F(x0 + ϵ*δx) - (F(x0) + ϵ*DF(x0)*δx))/ϵ^2/norm(δx) for ϵ ∈ ϵs ]
 
- plot(ϵs, jacobian_test(R,DR,ones(n𝐄),randn(n𝐄)))
+ plot(ϵs, jacobian_test(R,DR,[ones(n𝐄);randn(N*n𝐕)],randn(n𝐄+N*n𝐕)),
+      scale=:log10,xlabel="ϵ",ylabel="Taylor error (should be const)")
