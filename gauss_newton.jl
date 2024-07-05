@@ -4,7 +4,7 @@
 # Define graph and graph Laplacian
 using Plots, LinearAlgebra, Test
 ⊗ = kron
-Nx = 10; Ny = 10; # number of nodes
+Nx = 4; Ny = 4; # number of nodes
 x = (0:(Nx-1))*ones(1,Ny)/(Nx-1)
 y = ones(Nx)*((0:(Ny-1))') /(Ny-1)
 D(N) = [ (i+1==j) - (i==j) for i=1:N-1,j=1:N]
@@ -36,11 +36,15 @@ fs = [x[𝐁]+y[𝐁] x[𝐁]-y[𝐁]]; N = size(fs,2)
 
 ## Dirichlet problem solve
 function dirsolve(σ,f)
-    u = zeros(ComplexF64,n𝐕)
+    u = zeros(n𝐕)
     u[𝐁] = f
     u[𝐈] = -L(σ)[𝐈,𝐈]\(L(σ)[𝐈,𝐁]*f)
     return u
 end
+
+## true data
+us_true = hcat([ dirsolve(σ_true,f) for f ∈ eachcol(fs)]...)
+Hs_true = hcat([ σ_true.*abs2.(∇*u) for u ∈ eachcol(us_true)]...)
 
 ## Plotting
 # We plot the conductivity and the dissipated currents
@@ -61,9 +65,9 @@ function plot_edge_quantity(f;lw=6)
   end
 
   p = plot(
-  plot_edge_quantity(σ,lw=4),
-  plot_edge_quantity(Hs[1],lw=4),
-  plot_edge_quantity(Hs[2],lw=4), 
+  plot_edge_quantity(σ_true,lw=4),
+  plot_edge_quantity(Hs_true[1],lw=4),
+  plot_edge_quantity(Hs_true[2],lw=4), 
   layout=grid(1,3) 
   )
 
@@ -79,33 +83,26 @@ Dℒ(σ,u) = [
 ]
 
 Dℳ(σ,u) = [ diagm(abs2.(∇*u)) 2diagm(σ .* (∇*u))*∇ ];
+
 ## Assemble forward map
-fwd(σ,us) = [ vcat([ℒ(σ,us[:,j]) for j=1:N]...)
-              vcat([ℳ(σ,us[:,j]) for j=1:N]...)
-            ]
+fwd(σ,us) = [ vcat([ℒ(σ,u) for u ∈ eachcol(us)]...)
+              vcat([ℳ(σ,u) for u ∈ eachcol(us)]...) ]
 
 ## Assemble rhs
-rhs(fs,Hs) = [ vcat([R𝐁'*fs[:,j] for j=1:N]...)
-             Hs[:]
-             ]
+rhs(fs,Hs) = [ vcat([R𝐁'*f for f ∈ eachcol(fs)]...)
+               Hs[:] ]
 
 ## Assemble Jacobian and injectivity matrix for all boundary conditions
 function jacobian(σ,us)  
     N = size(us,2) # number of Dirichlet boundary conditions
-    ## Solve Dirichlet problems and calculate Jacobians for each boundary condition
-    us = zeros(n𝐕,N)
-    Dℒs = Vector{Any}(undef,N)
-    Dℳs = Vector{Any}(undef,N)
-    for j=1:N
-        Dℒs[j] = Dℒ(σ,us[:,j])
-        Dℳs[j] = Dℳ(σ,us[:,j])
-    end
-
+    Dℒs = [ Dℒ(σ,u) for u ∈ eachcol(us) ]
+    Dℳs = [ Dℳ(σ,u) for u ∈ eachcol(us) ]
+ 
     ## Assemble full Jacobian
     𝒜 = zeros(N*n𝐕+N*n𝐄,n𝐄+N*n𝐕)
     for j=1:N
         𝒜[ (j-1)*n𝐕 .+ (1:n𝐕)        , 1:n𝐄 ] = Dℒs[j][:,1:n𝐄]
-        𝒜[ N*n𝐕 + (j-1)*n𝐄 .+ (1:n𝐄) , 1:n𝐄 ] = Dℳs[j][:,1:n𝐄]
+        𝒜[ N*n𝐕 .+ (j-1)*n𝐄 .+ (1:n𝐄) , 1:n𝐄 ] = Dℳs[j][:,1:n𝐄]
         𝒜[ (j-1)*n𝐕 .+ (1:n𝐕)        , n𝐄 .+ (j-1)*n𝐕 .+ (1:n𝐕) ] = Dℒs[j][:,n𝐄 .+ (1:n𝐕)]
         𝒜[ N*n𝐕 .+ (j-1)*n𝐄 .+ (1:n𝐄), n𝐄 .+ (j-1)*n𝐕 .+ (1:n𝐕) ] = Dℳs[j][:,n𝐄 .+ (1:n𝐕)]
     end
@@ -138,18 +135,13 @@ end
 unpack(x)  = (σ=x[1:n𝐄],us=reshape(x[(n𝐄+1):end],n𝐕,N)) # go from x to σ,us
 pack(σ,us) = vcat(σ,vec(us)) # go from (σ,us) to x
 
-## true data
-us_true = hcat([ dirsolve(σ_true,f) for f ∈ eachcol(fs)]...)
-Hs_true = hcat([ σ.*abs2.(∇*u) for u ∈ eachcol(us_true)]...)
-
-R(x)  = fwd(unpack(x)...) - b(fs,Hs_true)
+R(x)  = fwd(unpack(x)...) - rhs(fs,Hs_true)
 DR(x) = jacobian(unpack(x)...)
 
-
 ## test a Jacobian against Taylor's theorem
-ϵs = 10.0 .^ (0:-0.5:-16)
+ϵs = 10.0 .^ (2:-0.5:-16)
 jacobian_test(F,DF,x0,δx) =
  [ norm(F(x0 + ϵ*δx) - (F(x0) + ϵ*DF(x0)*δx))/ϵ^2/norm(δx) for ϵ ∈ ϵs ]
 
- plot(ϵs, jacobian_test(R,DR,[ones(n𝐄);randn(N*n𝐕)],randn(n𝐄+N*n𝐕)),
+ plot(ϵs, jacobian_test(R,DR,pack(σ_true,us_true),randn(n𝐄+N*n𝐕)),
       scale=:log10,xlabel="ϵ",ylabel="Taylor error (should be const)")
