@@ -2,7 +2,7 @@
 # Here we give an example of reconstructing the conductivity by successive linearization
 # ## Graph setup
 # Define graph and graph Laplacian
-using Plots, LinearAlgebra, Test
+using Plots, LinearAlgebra, Test, Random
 ⊗ = kron
 Nx = 10; Ny = 10; # number of nodes
 x = (0:(Nx-1))*ones(1,Ny)/(Nx-1)
@@ -23,8 +23,8 @@ R𝐁 = I(n𝐕)[𝐁,:]  # restriction to boundary nodes
 indisk(c,r,x) = (x[1]-c[1])^2 + (x[2]-c[2])^2  <= r^2
 σ_true =
    [ 1 + indisk((0.2,0.2),0.1,(x,y)) + 
-         indisk((0.5,0.5),0.2,(x,y)) +
-         indisk((0.75,0.6),0.2,(x,y)) 
+     -0.5indisk((0.5,0.5),0.2,(x,y)) +
+        2indisk((0.75,0.6),0.2,(x,y)) 
     for  (x,y) ∈ zip(x𝐄,y𝐄) ]
 σ0 = ones(n𝐄)
 
@@ -163,11 +163,13 @@ end
 # ## Setup data and residual
 unpack(x)  = (σ=x[1:n𝐄],us=reshape(x[(n𝐄+1):end],n𝐕,N)) # go from x to σ,us
 pack(σ,us) = vcat(σ,vec(us)) # go from (σ,us) to x
-
+noiselevel = 5/100 
+Random.seed!(17) # initialize seed
 R(x)  = fwd(unpack(x)...) - rhs(fs,Hs_true)
+Rnoisy(x)  = fwd(unpack(x)...) - rhs(fs,Hs_true + maximum(Hs_true)*noiselevel*randn(size(Hs_true)))
 DR(x) = jacobian(unpack(x)...)
 
-## test a Jacobian against Taylor's theorem
+## test Jacobian against Taylor's theorem
 ϵs = 10.0 .^ (2:-0.5:-16)
 jacobian_test(F,DF,x0,δx) =
  [ norm(F(x0 + ϵ*δx) - (F(x0) + ϵ*DF(x0)*δx))/ϵ^2/norm(δx) for ϵ ∈ ϵs ]
@@ -175,11 +177,25 @@ jacobian_test(F,DF,x0,δx) =
  plot(ϵs, jacobian_test(R,DR,pack(σ_true,us_true),randn(n𝐄+N*n𝐕)),
       scale=:log10,xlabel="ϵ",ylabel="Taylor error (should be const)")
 
-# ## Do reconstructions without noise
+# ## Do reconstructions
+X,objfun1=gauss_newton(R,DR,pack(σ0,us0);α=1e-4,tol=1e-6,maxiter=50)
+σrec1,usrec1 = unpack(X)
 
-x,objfun=gauss_newton(R,DR,pack(σ0,us0);α=1e-3,tol=1e-6,maxiter=50)
-σrec,usrec = unpack(x)
+X,objfun2=gauss_newton(Rnoisy,DR,pack(σ0,us0);α=5e-3,tol=1e-6,maxiter=50)
+σrec2,usrec2 = unpack(X)
 
-p1 = plot(objfun,yscale=:log10,legend=:none,title="objective function",xlabel="iteration")
-p2 = plot(σrec,label="rec"); p2=plot!(σ_true,label="true")
+p1 = plot(objfun1,yscale=:log10,label="noiseless")
+plot!(objfun2,title="objective function",label="noisy",xlabel="iteration")
+p2 = plot(σrec1,label="rec"); p2=plot!(σrec2,label="noisy"); p2=plot!(σ_true,label="true");
 plot(p1,p2,layout=grid(1,2))
+
+# ## Plot for paper
+relerr(a,b) = norm(a-b)/norm(a)
+println("relative error σrec1 = ",100*relerr(σ_true,σrec1)," %")
+println("relative error σrec2 = ",100*relerr(σ_true,σrec2)," %")
+
+p = plot(
+    plot_edge_quantity(σrec1,lw=4),
+    plot_edge_quantity(σrec2,lw=4), 
+    layout=grid(1,2) 
+ )
