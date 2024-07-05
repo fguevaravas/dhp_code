@@ -4,7 +4,7 @@
 # Define graph and graph Laplacian
 using Plots, LinearAlgebra, Test
 ⊗ = kron
-Nx = 4; Ny = 4; # number of nodes
+Nx = 10; Ny = 10; # number of nodes
 x = (0:(Nx-1))*ones(1,Ny)/(Nx-1)
 y = ones(Nx)*((0:(Ny-1))') /(Ny-1)
 D(N) = [ (i+1==j) - (i==j) for i=1:N-1,j=1:N]
@@ -14,12 +14,11 @@ D(N) = [ (i+1==j) - (i==j) for i=1:N-1,j=1:N]
 ]
 𝐁 = findall( (x[:].==0) .| (x[:].==Nx-1) .| (y[:].==0) .| (y[:].==Ny-1))
 𝐈 = setdiff(1:Nx*Ny,𝐁)
+x𝐄 = abs.(∇)*x[:]/2; y𝐄 = abs.(∇)*y[:]/2 # edge centers
 n𝐈 =length(𝐈); n𝐁 = length(𝐁); 
 n𝐄, n𝐕 = size(∇)
 R𝐈 = I(n𝐕)[𝐈,:]  # restriction to interior nodes
 R𝐁 = I(n𝐕)[𝐁,:]  # restriction to boundary nodes
-
-x𝐄 = abs.(∇)*x[:]/2; y𝐄 = abs.(∇)*y[:]/2 # edge centers
 
 indisk(c,r,x) = (x[1]-c[1])^2 + (x[2]-c[2])^2  <= r^2
 σ_true =
@@ -27,12 +26,16 @@ indisk(c,r,x) = (x[1]-c[1])^2 + (x[2]-c[2])^2  <= r^2
          indisk((0.5,0.5),0.2,(x,y)) +
          indisk((0.75,0.6),0.2,(x,y)) 
     for  (x,y) ∈ zip(x𝐄,y𝐄) ]
+σ0 = ones(n𝐄)
 
 L(σ) = ∇'*diagm(σ)*∇ # Laplacian
 
 ## Boundary conditions and data
 # The Dirichlet boundary conditions we use are similar to $x + y$ and $x-y$ in the continuum. They are on purpose not aligned with the grid edges, so that we do not end up with edges where there are no currents flowing.
 fs = [x[𝐁]+y[𝐁] x[𝐁]-y[𝐁]]; N = size(fs,2)
+
+# N=8
+# fs = hcat([ cos(θ)*x[𝐁] + sin(θ)*y[𝐁] for θ ∈ range(0,π,N)]...)
 
 ## Dirichlet problem solve
 function dirsolve(σ,f)
@@ -42,9 +45,14 @@ function dirsolve(σ,f)
     return u
 end
 
-## true data
-us_true = hcat([ dirsolve(σ_true,f) for f ∈ eachcol(fs)]...)
-Hs_true = hcat([ σ_true.*abs2.(∇*u) for u ∈ eachcol(us_true)]...)
+function state(σ)
+    us = hcat([ dirsolve(σ,f) for f ∈ eachcol(fs)]...)
+    Hs = hcat([ σ.*abs2.(∇*u) for u ∈ eachcol(us)]...)
+    return us,Hs
+end
+us_true, Hs_true = state(σ_true) # true data
+us0, Hs0 = state(σ0) #  data for a reference conductivity (constant)
+
 
 ## Plotting
 # We plot the conductivity and the dissipated currents
@@ -89,7 +97,7 @@ fwd(σ,us) = [ vcat([ℒ(σ,u) for u ∈ eachcol(us)]...)
               vcat([ℳ(σ,u) for u ∈ eachcol(us)]...) ]
 
 ## Assemble rhs
-rhs(fs,Hs) = [ vcat([R𝐁'*f for f ∈ eachcol(fs)]...)
+rhs(fs,Hs) = [ vec([zeros(n𝐈,N); fs])
                Hs[:] ]
 
 ## Assemble Jacobian and injectivity matrix for all boundary conditions
@@ -112,23 +120,44 @@ end;
 # ## Gauss-Newton method
 # Here we solve the optimization problem
 # $$
-# \min_\sigma \| R(\sigma) \|^2 + \alpha^2 \| \sigma \|^2,
+# \min_x \| R(x) \|^2 + \alpha^2 \| x \|^2,
 # $$
 # where $R$ is the residual of a (nonlinear) system of equations describing the problem and $\alpha$ is a regularization parameter.
 # The Gauss-Newton method consists of the update:
 # $$
-# \sigma^{(n+1)} = \sigma^{(n)} - (DR(\sigma)DR^T(\sigma) + \alpha^2 I)^{-1} R(\sigma) ,
+# x^{(n+1)} = x^{(n)} - (DR(x^{(n)})DR^T(x^{(n)}) + \alpha^2 I)^{-1} DR^T(x^{(n)}) R(x^{(n)}),
 # $$
-# where $DF(\sigma)$ is the Jacobian of $F$ evaluated at $\sigma$.
-function gauss_newton(R,DR,x0;maxiter=100,tol=1e-4,α=0)
+# where $DF(x)$ is the Jacobian of $F$ evaluated at $x$. We add Armijo backtracking
+# to avoid taking steps that are too large (based on the  unregularized objective function)
+function gauss_newton(R,DR,x0;
+    maxiter=100,  # max number of GN iterations
+    tol=1e-4,     # gradient tolerance
+    α=1e-3,       # regularization parameter
+    btα=1e-4,     # SDC for backtracking
+    β=1/2,        # Armijo factor
+    btmaxiter=100 # backtracking max iter
+)
     x = x0
+    objfun = []
+    f(x) = norm(R(x))^2  # objective function
+
     for n=1:maxiter
         J = DR(x)
-        xnew = x - (J*J' + α^2*I)\R(x)
-        norm(xnew - x)/norm(x) < tol && return xnew,n
-        x = xnew
+        r = R(x)
+        ∇f = 2J'*r
+        push!(objfun,f(x))
+        norm(∇f) < tol && return x,objfun
+        dx = - (J'*J + α^2*I)\(J'*r) # GN direction
+        ## backtracking line search
+        t = 1; k = 1
+        for k=1:btmaxiter
+            (f(x+t*dx)-f(x) < btα*t*∇f'*dx) && break
+            t*=β
+            (k==btmaxiter) && println("Warning: max backtracking limit hit")
+        end
+        x = x + t*dx
     end
-    return x,maxiter
+    return x,objfun
 end
 
 # ## Setup data and residual
@@ -145,3 +174,12 @@ jacobian_test(F,DF,x0,δx) =
 
  plot(ϵs, jacobian_test(R,DR,pack(σ_true,us_true),randn(n𝐄+N*n𝐕)),
       scale=:log10,xlabel="ϵ",ylabel="Taylor error (should be const)")
+
+# ## Do reconstructions without noise
+
+x,objfun=gauss_newton(R,DR,pack(σ0,us0);α=1e-3,tol=1e-6,maxiter=50)
+σrec,usrec = unpack(x)
+
+p1 = plot(objfun,yscale=:log10,legend=:none,title="objective function",xlabel="iteration")
+p2 = plot(σrec,label="rec"); p2=plot!(σ_true,label="true")
+plot(p1,p2,layout=grid(1,2))
