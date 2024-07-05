@@ -90,7 +90,6 @@ function jacobian(σr,σi,fs)
 
   ## Assemble full Jacobian
   𝒜 = zeros(ComplexF64,3N*n𝐕+2N*n𝐄,2n𝐄+3N*n𝐕)
-
   for j=1:N
     𝒜[ (j-1)*3n𝐕 .+ (1:3n𝐕)         , 1:2n𝐄 ] = Dℒs[j][:,1:2n𝐄]
     𝒜[ 3N*n𝐕 + (j-1)*2n𝐄 .+ (1:2n𝐄) , 1:2n𝐄 ] = Dℳs[j][:,1:2n𝐄]
@@ -140,4 +139,3 @@ end
 
 ## A table summarizing results
 DataFrame(N=1:4,sizeJ=sizeJ,rankJ=rankJ,condJ=condJ,rankA=rankA,rankrealA=rankrealA)
-
