@@ -1,5 +1,6 @@
 # # Reconstructions using Gauss-Newton method
 # Here we give an example of reconstructing the conductivity by successive linearization
+
 # ## Graph setup
 # Define graph and graph Laplacian
 using Plots, LinearAlgebra, Test, Random
@@ -30,12 +31,9 @@ indisk(c,r,x) = (x[1]-c[1])^2 + (x[2]-c[2])^2  <= r^2
 
 L(σ) = ∇'*diagm(σ)*∇ # Laplacian
 
-## Boundary conditions and data
+# ## Boundary conditions and data
 # The Dirichlet boundary conditions we use are similar to $x + y$ and $x-y$ in the continuum. They are on purpose not aligned with the grid edges, so that we do not end up with edges where there are no currents flowing.
 fs = [x[𝐁]+y[𝐁] x[𝐁]-y[𝐁]]; N = size(fs,2)
-
-# N=8
-# fs = hcat([ cos(θ)*x[𝐁] + sin(θ)*y[𝐁] for θ ∈ range(0,π,N)]...)
 
 ## Dirichlet problem solve
 function dirsolve(σ,f)
@@ -51,14 +49,14 @@ function state(σ)
     return us,Hs
 end
 us_true, Hs_true = state(σ_true) # true data
-us0, Hs0 = state(σ0) #  data for a reference conductivity (constant)
+us0, Hs0 = state(σ0); #  data for a reference conductivity (constant)
 
 
-## Plotting
-# We plot the conductivity and the dissipated currents
-function plot_edge_quantity(f;lw=6)
+# ## Plotting
+# We plot the conductivity and the dissipated power
+function plot_edge_quantity(f;lw=6,clim=extrema(f))
     p = plot()
-    minf, maxf = extrema(f)
+    minf, maxf = clim
     for (i, r) in enumerate(eachrow(∇))
       i1, i2 = findall(abs.(r) .> 0)
       if (maxf-minf)/(maxf+minf) < 1e-6
@@ -73,10 +71,10 @@ function plot_edge_quantity(f;lw=6)
   end
 
   p = plot(
-  plot_edge_quantity(σ_true,lw=4),
-  plot_edge_quantity(Hs_true[1],lw=4),
-  plot_edge_quantity(Hs_true[2],lw=4), 
-  layout=grid(1,3) 
+    plot_edge_quantity(σ_true,lw=4),
+    plot_edge_quantity(Hs_true[:,1],lw=4),
+    plot_edge_quantity(Hs_true[:,2],lw=4), 
+    layout=grid(1,3) 
   )
 
 # ## Jacobian computation
@@ -120,15 +118,16 @@ end;
 # ## Gauss-Newton method
 # Here we solve the optimization problem
 # $$
-# \min_x \| R(x) \|^2 + \alpha^2 \| x \|^2,
+# \min_x \| R(x) \|^2,
 # $$
-# where $R$ is the residual of a (nonlinear) system of equations describing the problem and $\alpha$ is a regularization parameter.
+# where $R$ is the residual of a (nonlinear) system of equations describing the problem.
 # The Gauss-Newton method consists of the update:
 # $$
 # x^{(n+1)} = x^{(n)} - (DR(x^{(n)})DR^T(x^{(n)}) + \alpha^2 I)^{-1} DR^T(x^{(n)}) R(x^{(n)}),
 # $$
-# where $DF(x)$ is the Jacobian of $F$ evaluated at $x$. We add Armijo backtracking
-# to avoid taking steps that are too large (based on the  unregularized objective function)
+# where $DF(x)$ is the Jacobian of $F$ evaluated at $x$ and $|alpha$ is a regularization parameter. 
+# We add Armijo backtracking to avoid taking steps that are too large 
+# (based on the  unregularized objective function)
 function gauss_newton(R,DR,x0;
     maxiter=100,  # max number of GN iterations
     tol=1e-4,     # gradient tolerance
@@ -161,6 +160,12 @@ function gauss_newton(R,DR,x0;
 end
 
 # ## Setup data and residual
+# Here we include a test of the Jacobian, where we check numerically whether the
+# Jacobian we calculate satisfies
+# $$
+#  F(x + \epsilon \delta x) = F(x) + \epsilon DF(x)\delta x + \mathcal{O}(\epsilon^2).
+# $$
+# More concretely, if $\epsilon$ is too large, Taylor's theorem doesn't hold, if it is too small then we encounter problems with machine precision, so if divide the purportedly $\mathcal{O}(\epsilon^2)$ terrm by $\epsilon^2$ we should get something approximately constant (for values of $\epsilon$ that are neither too big or too small)
 unpack(x)  = (σ=x[1:n𝐄],us=reshape(x[(n𝐄+1):end],n𝐕,N)) # go from x to σ,us
 pack(σ,us) = vcat(σ,vec(us)) # go from (σ,us) to x
 noiselevel = 5/100 
@@ -177,7 +182,7 @@ jacobian_test(F,DF,x0,δx) =
  plot(ϵs, jacobian_test(R,DR,pack(σ_true,us_true),randn(n𝐄+N*n𝐕)),
       scale=:log10,xlabel="ϵ",ylabel="Taylor error (should be const)")
 
-# ## Do reconstructions
+# ## Reconstructions with and without noise
 X,objfun1=gauss_newton(R,DR,pack(σ0,us0);α=1e-4,tol=1e-6,maxiter=50)
 σrec1,usrec1 = unpack(X)
 
