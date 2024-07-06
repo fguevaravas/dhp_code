@@ -1,6 +1,6 @@
 # # An illustration of Theorem and Proposition 1
-# Here we simulate thermal noise currents and show that the problem
-# is equivalent to a deterministic problem
+# Here we simulate thermal noise currents and show that the problem is
+# equivalent to a deterministic problem
 # ## Graph setup
 # Define graph and graph Laplacian
 using Plots, LinearAlgebra, Test, Random, Statistics
@@ -38,7 +38,13 @@ end
 p=plot!(legend=:none, aspect_ratio=:equal, axis=false, grid=false,size=(300,300))
 
 # ## Generate random noise currents
-# The code below stores all realizations so it is unnecessarily memory intensive. Also notice that the factor $\kappa/\pi$ appears in both the variance of the thermal noise currents and the end result. So instead of using Boltzmann's constant $\kappa \approx 1.380649 \times 10^{−23}$ J/K we can use $\kappa = \pi$ and any relative errors we calculate will be accurate. We also chose a very small background temperature (1K) because it allowed for a more accuarate result with fewer realizations.
+# The code below stores all realizations so it is unnecessarily memory
+# intensive. Also notice that the factor $\kappa/\pi$ appears in both the
+# variance of the thermal noise currents and the end result. So instead of using
+# Boltzmann's constant $\kappa \approx 1.380649 \times 10^{−23}$ J/K we can use
+# $\kappa = \pi$ and any relative errors we calculate will be accurate. We also
+# chose a very small background temperature (1K) because it allowed for a more
+# accuarate result with fewer realizations.
 Random.seed!(17) # initialize seed
 κ = π # the correct Boltzmann constant is κ = 1.380649e−23 # J/K
 T0 = 1; δT = 100; # background temp and perturbation

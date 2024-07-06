@@ -1,7 +1,6 @@
 # # Example : complex conductivities
 # ## Graph setup
-# First we setup the graph, boundary conditions and 
-# graph Laplacian
+# First we setup the graph, boundary conditions and graph Laplacian
 using Plots, LinearAlgebra, Test, DataFrames
 x = [-1,1,-1,1,0,0]
 y = [1,1,0,0,1,0]
@@ -111,7 +110,12 @@ function injectivity_condition(σr,σi,fs)
 end;
 
 # ## Some numerical tests for injectivity
-# Here should see that the linearized inverse problem is not injective for $N=1$ and $N=2$, but is for $N=3$ and $N=4$. In this example, the condition number improves (is smaller) with larger $N$. We also include the rank of the complex matrix $A = [A^{(1)};\ldots;A^{(N)}]$ and of its real part. We can see that as a complex matrix $A$ has at least $\sigma' + \jmath\omega_1\sigma''$ in its nullspace.
+# Here should see that the linearized inverse problem is not injective for $N=1$
+# and $N=2$, but is for $N=3$ and $N=4$. In this example, the condition number
+# improves (is smaller) with larger $N$. We also include the rank of the complex
+# matrix $A = [A^{(1)};\ldots;A^{(N)}]$ and of its real part. We can see that as
+# a complex matrix $A$ has at least $\sigma' + \jmath\omega_1\sigma''$ in its
+# nullspace.
 N = 4
 rankJ = zeros(Int64,N)
 rankA = zeros(Int64,N)

@@ -1,5 +1,6 @@
 # # Reconstructions using Gauss-Newton method
-# Here we give an example of reconstructing the conductivity by successive linearization
+# Here we give an example of reconstructing the conductivity by successive
+# linearization
 
 # ## Graph setup
 # Define graph and graph Laplacian
@@ -32,7 +33,9 @@ indisk(c,r,x) = (x[1]-c[1])^2 + (x[2]-c[2])^2  <= r^2
 L(σ) = ∇'*diagm(σ)*∇ # Laplacian
 
 # ## Boundary conditions and data
-# The Dirichlet boundary conditions we use are similar to $x + y$ and $x-y$ in the continuum. They are on purpose not aligned with the grid edges, so that we do not end up with edges where there are no currents flowing.
+# The Dirichlet boundary conditions we use are similar to $x + y$ and $x-y$ in
+# the continuum. They are on purpose not aligned with the grid edges, so that we
+# do not end up with edges where there are no currents flowing.
 fs = [x[𝐁]+y[𝐁] x[𝐁]-y[𝐁]]; N = size(fs,2)
 
 ## Dirichlet problem solve
@@ -54,9 +57,9 @@ us0, Hs0 = state(σ0); #  data for a reference conductivity (constant)
 
 # ## Plotting
 # We plot the conductivity and the dissipated power
-function plot_edge_quantity(f;lw=6,clim=extrema(f))
+function plot_edge_quantity(f;lw=6,clims=extrema(f))
     p = plot()
-    minf, maxf = clim
+    minf, maxf = clims
     for (i, r) in enumerate(eachrow(∇))
       i1, i2 = findall(abs.(r) .> 0)
       if (maxf-minf)/(maxf+minf) < 1e-6
@@ -120,14 +123,14 @@ end;
 # $$
 # \min_x \| R(x) \|^2,
 # $$
-# where $R$ is the residual of a (nonlinear) system of equations describing the problem.
-# The Gauss-Newton method consists of the update:
+# where $R$ is the residual of a (nonlinear) system of equations describing the
+# problem. The Gauss-Newton method consists of the update:
 # $$
 # x^{(n+1)} = x^{(n)} - (DR(x^{(n)})DR^T(x^{(n)}) + \alpha^2 I)^{-1} DR^T(x^{(n)}) R(x^{(n)}),
 # $$
-# where $DF(x)$ is the Jacobian of $F$ evaluated at $x$ and $|alpha$ is a regularization parameter. 
-# We add Armijo backtracking to avoid taking steps that are too large 
-# (based on the  unregularized objective function)
+# where $DF(x)$ is the Jacobian of $F$ evaluated at $x$ and $|alpha$ is a
+# regularization parameter. We add Armijo backtracking to avoid taking steps
+# that are too large (based on the  unregularized objective function)
 function gauss_newton(R,DR,x0;
     maxiter=100,  # max number of GN iterations
     tol=1e-4,     # gradient tolerance
@@ -160,12 +163,15 @@ function gauss_newton(R,DR,x0;
 end
 
 # ## Setup data and residual
-# Here we include a test of the Jacobian, where we check numerically whether the
-# Jacobian we calculate satisfies
+# We check numerically whether the Jacobian we calculate satisfies
 # $$
 #  F(x + \epsilon \delta x) = F(x) + \epsilon DF(x)\delta x + \mathcal{O}(\epsilon^2).
 # $$
-# More concretely, if $\epsilon$ is too large, Taylor's theorem doesn't hold, if it is too small then we encounter problems with machine precision, so if divide the purportedly $\mathcal{O}(\epsilon^2)$ terrm by $\epsilon^2$ we should get something approximately constant (for values of $\epsilon$ that are neither too big or too small)
+# More concretely, if $\epsilon$ is too large, Taylor's theorem doesn't hold, if
+# it is too small then we encounter problems with machine precision, so if
+# divide the purportedly $\mathcal{O}(\epsilon^2)$ terrm by $\epsilon^2$ we
+# should get something approximately constant (for values of $\epsilon$ that are
+# neither too big or too small)
 unpack(x)  = (σ=x[1:n𝐄],us=reshape(x[(n𝐄+1):end],n𝐕,N)) # go from x to σ,us
 pack(σ,us) = vcat(σ,vec(us)) # go from (σ,us) to x
 noiselevel = 5/100 
@@ -198,9 +204,9 @@ plot(p1,p2,layout=grid(1,2))
 relerr(a,b) = norm(a-b)/norm(a)
 println("relative error σrec1 = ",100*relerr(σ_true,σrec1)," %")
 println("relative error σrec2 = ",100*relerr(σ_true,σrec2)," %")
-
+clims = extrema([σrec1;σrec2])
 p = plot(
-    plot_edge_quantity(σrec1,lw=4),
-    plot_edge_quantity(σrec2,lw=4), 
+    plot_edge_quantity(σrec1,lw=4,clims=clims),
+    plot_edge_quantity(σrec2,lw=4,clims=clims), 
     layout=grid(1,2) 
  )

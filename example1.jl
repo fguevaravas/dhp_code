@@ -1,10 +1,9 @@
 # # Example 1: uniqueness with one single boundary condition
-# Here we show a graph where one single boundary condition is sufficient
-# to recover conductivities from power data in the linearized sense.
+# Here we show a graph where one single boundary condition is sufficient to
+# recover conductivities from power data in the linearized sense.
 
 # ## Graph setup
-# First we setup the graph, boundary conditions and 
-# graph Laplacian
+# First we setup the graph, boundary conditions and graph Laplacian
 using Plots, LinearAlgebra, Test
 x = vcat([cos(2π*i/3) for i=0:2],0)
 y = vcat([sin(2π*i/3) for i=0:2],0)

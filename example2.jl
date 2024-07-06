@@ -1,11 +1,9 @@
 # # Example 2: non-uniqueness of linearized problem
-# Here we show a graph where the linearization of the inverse
-# problem of finding the conductivities from power measurements
-# does not admit a unique solution.
+# Here we show a graph where the linearization of the inverse problem of finding
+# the conductivities from power measurements does not admit a unique solution.
 # 
 # ## Graph setup
-# First we setup the graph, boundary conditions and 
-# graph Laplacian
+# First we setup the graph, boundary conditions and graph Laplacian
 using Plots, LinearAlgebra, Test
 ⊗ = kron
 x =  ones(3,1)*[0 1 2]; 
@@ -72,11 +70,10 @@ println("Condition number of Jacobian for σ2 is = ",cond(jacobian(σ2)))
 
 
 # ## Non-uniqueness
-# We give an example of a family of $\delta\sigma$ of the form
-# $\delta\sigma = c_1 v_1 + c_2 v_2$ which cannot recovered from power
-# measurements in the linearized sense. We test this by plugging  this
-# (non-zero) $\delta\sigma, \delta u_1, \delta u_2$ into the linearized
-# problem and showing we get zero.
+# We give an example of a family of $\delta\sigma$ of the form $\delta\sigma =
+# c_1 v_1 + c_2 v_2$ which cannot recovered from power measurements in the
+# linearized sense. We test this by plugging  this (non-zero) $\delta\sigma,
+# \delta u_1, \delta u_2$ into the linearized problem and showing we get zero.
 v1 = 4*[0,1,0,0,-1,0,0,0,0,0,0,0]
 v2 = 4*[0,0,0,0,0,0,0,0,1,-1,0,0]
 c1,c2 = randn(2)
