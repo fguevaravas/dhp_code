@@ -14,7 +14,7 @@ D(N) = [ (i+1==j) - (i==j) for i=1:N-1,j=1:N]
 ∇ = [ I(Ny) ⊗ D(Nx) # horizontal edges
       D(Ny) ⊗ I(Nx) # vertical edges
 ]
-𝐁 = findall( (x[:].==0) .| (x[:].==Nx-1) .| (y[:].==0) .| (y[:].==Ny-1))
+𝐁 = findall( (x[:].==0) .| (x[:].==1) .| (y[:].==0) .| (y[:].==1))
 𝐈 = setdiff(1:Nx*Ny,𝐁)
 x𝐄 = abs.(∇)*x[:]/2; y𝐄 = abs.(∇)*y[:]/2 # edge centers
 n𝐈 =length(𝐈); n𝐁 = length(𝐁); 
@@ -55,8 +55,7 @@ us_true, Hs_true = state(σ_true) # true data
 us0, Hs0 = state(σ0); #  data for a reference conductivity (constant)
 
 
-# ## Plotting
-# We plot the conductivity and the dissipated power
+# ## Plot conductivity
 function plot_edge_quantity(f;lw=6,clims=extrema(f))
     p = plot()
     minf, maxf = clims
@@ -73,12 +72,33 @@ function plot_edge_quantity(f;lw=6,clims=extrema(f))
     return p
   end
 
+  h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=extrema(σ_true),
+                 xlims=(1,1.1), label="", c=:thermal, framestyle=:none)
+  l = @layout [ a b{0.1w} ]
   p = plot(
-    plot_edge_quantity(σ_true,lw=4),
-    plot_edge_quantity(Hs_true[:,1],lw=4),
-    plot_edge_quantity(Hs_true[:,2],lw=4), 
-    layout=grid(1,3) 
+    plot_edge_quantity(σ_true,lw=4), h2,
+    layout=l, size=(300,300)
   )
+
+# ## Plot voltages 
+clims = extrema(us_true)
+p = plot(
+  heatmap(reshape(us_true[:,1],Nx,Ny),clims=clims),
+  heatmap(reshape(us_true[:,2],Nx,Ny),clims=clims),
+  layout=grid(1,2)
+)
+
+# ## Plot dissipated power
+Hclims = extrema(Hs_true)
+h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=Hclims,
+               xlims=(1,1.1), label="", c=:thermal, framestyle=:none)
+l = @layout [ a b c{0.1w} ]
+p = plot(
+  plot_edge_quantity(Hs_true[:,1],lw=4,clims=Hclims),
+  plot_edge_quantity(Hs_true[:,2],lw=4,clims=Hclims),
+  h2,
+  layout=l, size=(600,300)
+)
 
 # ## Jacobian computation
 ## Forward problem and Jacobian for one measurement
@@ -205,8 +225,12 @@ relerr(a,b) = norm(a-b)/norm(a)
 println("relative error σrec1 = ",100*relerr(σ_true,σrec1)," %")
 println("relative error σrec2 = ",100*relerr(σ_true,σrec2)," %")
 clims = extrema([σrec1;σrec2])
+h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=clims,
+                 xlims=(1,1.1), label="", c=:thermal, framestyle=:none)
+l = @layout [ grid(1,2) a{0.1w} ]
 p = plot(
     plot_edge_quantity(σrec1,lw=4,clims=clims),
     plot_edge_quantity(σrec2,lw=4,clims=clims), 
-    layout=grid(1,2) 
+    h2,
+    layout=l,size=(600,300)
  )
