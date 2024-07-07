@@ -113,7 +113,7 @@ blank = plot(foreground_color_subplot=:white,axis=false, grid=false)
 p = plot(
   plot_edge_quantity(edgemask.*deter,lw=6),
   plot_edge_quantity(edgemask.*stoch,lw=6),
-  h2, layout=l,size=(600,300)
+  h2, layout=l,size=(700,300)
 )
 
 savefig(p,"thermal_noise.png")

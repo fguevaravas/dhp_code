@@ -97,8 +97,10 @@ p = plot(
   plot_edge_quantity(Hs_true[:,1],lw=4,clims=Hclims),
   plot_edge_quantity(Hs_true[:,2],lw=4,clims=Hclims),
   h2,
-  layout=l, size=(600,300)
+  layout=l, size=(700,300)
 )
+savefig(p,"dissipated_power.png")
+p
 
 # ## Jacobian computation
 ## Forward problem and Jacobian for one measurement
@@ -232,5 +234,7 @@ p = plot(
     plot_edge_quantity(σrec1,lw=4,clims=clims),
     plot_edge_quantity(σrec2,lw=4,clims=clims), 
     h2,
-    layout=l,size=(600,300)
+    layout=l,size=(700,300)
  )
+ savefig(p,"sigrec.png")
+ p
