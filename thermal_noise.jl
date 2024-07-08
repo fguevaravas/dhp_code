@@ -89,9 +89,9 @@ plot(stoch,label="stoch")
 plot!(deter,label="deter")
 
 # ## Plots of deterministic vs stochastic dissipated power
-function plot_edge_quantity(f;lw=6)
+function plot_edge_quantity(f;lw=6,clims=extrema(f))
   p = plot()
-  minf, maxf = extrema(f)
+  minf, maxf = clims
   for (i, r) in enumerate(eachrow(∇))
     i1, i2 = findall(abs.(r) .> 0)
     if (maxf-minf)/(maxf+minf) < 1e-6
@@ -104,17 +104,21 @@ function plot_edge_quantity(f;lw=6)
   plot!(p,legend=:none, aspect_ratio=:equal, axis=false, grid=false)
   return p
 end
-l = @layout [ grid(1,2) a{0.1w} ]
-clims = extrema(edgemask.*deter)
+l = @layout [ grid(1,2) a{0.1w} ]; dpi=400; h=1*dpi; cw = h/4; 
+clims = extrema([edgemask.*deter;edgemask.*stoch])
+
+## Colorbar
 h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=clims,
-                 xlims=(1,1.1), label="", c=:thermal, framestyle=:none)
-blank = plot(foreground_color_subplot=:white,axis=false, grid=false)
+                 xlims=(1,1.1), label="", c=:thermal, framestyle=:none,
+                 size=(cw,h),dpi=dpi)
 
-p = plot(
-  plot_edge_quantity(edgemask.*deter,lw=6),
-  plot_edge_quantity(edgemask.*stoch,lw=6),
-  h2, layout=l,size=(700,300)
-)
+p1 = plot_edge_quantity(edgemask.*deter,lw=6,clims=clims); 
+plot!(p1,size=(h,h),dpi=dpi) 
+p2 = plot_edge_quantity(edgemask.*stoch,lw=6,clims=clims); 
+plot!(p2,size=(h,h),dpi=dpi)  
 
-savefig(p,"thermal_noise.png")
-p
+## output
+savefig(p1,"deter.png")
+savefig(p2,"stoch.png")
+savefig(h2,"thermal_noise_cbar.png")
+p = plot(p1,p2,h2, layout=l,size=(700,300))

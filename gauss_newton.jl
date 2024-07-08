@@ -77,7 +77,7 @@ function plot_edge_quantity(f;lw=6,clims=extrema(f))
   l = @layout [ a b{0.1w} ]
   p = plot(
     plot_edge_quantity(σ_true,lw=4), h2,
-    layout=l, size=(300,300)
+    layout=l, size=(400,300)
   )
 
 # ## Plot voltages 
@@ -90,17 +90,21 @@ p = plot(
 
 # ## Plot dissipated power
 Hclims = extrema(Hs_true)
+dpi=400; h=1*dpi; cw = h/4; 
 h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=Hclims,
-               xlims=(1,1.1), label="", c=:thermal, framestyle=:none)
+               xlims=(1,1.1), label="", c=:thermal, framestyle=:none,
+               size=(cw,h),dpi=dpi)
 l = @layout [ a b c{0.1w} ]
-p = plot(
-  plot_edge_quantity(Hs_true[:,1],lw=4,clims=Hclims),
-  plot_edge_quantity(Hs_true[:,2],lw=4,clims=Hclims),
-  h2,
-  layout=l, size=(700,300)
-)
-savefig(p,"dissipated_power.png")
-p
+p1 = plot_edge_quantity(Hs_true[:,1],lw=4,clims=Hclims)
+plot!(p1,size=(h,h),dpi=dpi) 
+p2 = plot_edge_quantity(Hs_true[:,2],lw=4,clims=Hclims)
+plot!(p2,size=(h,h),dpi=dpi) 
+
+## output
+savefig(h2,"dissipated_power_cbar.png")
+savefig(p1,"dissipated_power1.png")
+savefig(p2,"dissipated_power2.png")
+plot(p1,p2,h2,layout=l, size=(700,300))
 
 # ## Jacobian computation
 ## Forward problem and Jacobian for one measurement
@@ -227,14 +231,19 @@ relerr(a,b) = norm(a-b)/norm(a)
 println("relative error σrec1 = ",100*relerr(σ_true,σrec1)," %")
 println("relative error σrec2 = ",100*relerr(σ_true,σrec2)," %")
 clims = extrema([σrec1;σrec2])
+
+l = @layout [ grid(1,2) a{0.1w} ]; dpi=400; h=1*dpi; cw = h/4; 
+## Colorbar
 h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=clims,
-                 xlims=(1,1.1), label="", c=:thermal, framestyle=:none)
-l = @layout [ grid(1,2) a{0.1w} ]
-p = plot(
-    plot_edge_quantity(σrec1,lw=4,clims=clims),
-    plot_edge_quantity(σrec2,lw=4,clims=clims), 
-    h2,
-    layout=l,size=(700,300)
- )
- savefig(p,"sigrec.png")
- p
+                 xlims=(1,1.1), label="", c=:thermal, framestyle=:none,
+                 size=(cw,h),dpi=dpi)
+p1 = plot_edge_quantity(σrec1,lw=4,clims=clims)
+plot!(p1,size=(h,h),dpi=dpi) 
+p2 = plot_edge_quantity(σrec2,lw=4,clims=clims)
+plot!(p2,size=(h,h),dpi=dpi) 
+
+## output
+savefig(p1,"sigrec_noiseless.png")
+savefig(p2,"sigrec_noisy.png")
+savefig(h2,"sigrec_cbar.png")
+p = plot(p1,p2,h2,layout=l,size=(700,300))
