@@ -16,6 +16,8 @@ A list of the files that will be converted to Jupyter notebooks
 * `thermal_noise.jl`: code comparing thermal noise and dissipated power
 * `gauss_newton.jl`: an illustration of how to use Gauss-Newton method to solve the problem
 
+The generated Jupyter notebooks are available in the directory `notebooks`
+
 ## Funding
 This project was partially funded by the National Science Foundation Grant DMS-2008610.
 
