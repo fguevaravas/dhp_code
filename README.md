@@ -1,5 +1,5 @@
 # Code accompanying ``Discrete inverse problems with internal functionals''
-This code illustrates examples from the paper ``Discrete inverse problems with internal functionals'' by Marcus Corbett, Fernando Guevara Vasquez, Alexander Royzman and Guang Yang (_insert arXiV link_)
+This code illustrates examples from the paper ``Discrete inverse problems with internal functionals'' by Marcus Corbett, Fernando Guevara Vasquez, Alexander Royzman and Guang Yang. [arXiV:2407.13955](https://arxiv.org/abs/2407.13955)
 
 The code that is provided is in Julia and it can be used to generate annotated HTML or interactive Jupyter notebooks.
 
@@ -19,7 +19,7 @@ A list of the files that will be converted to Jupyter notebooks
 The generated Jupyter notebooks are available in the directory `notebooks`
 
 ## Funding
-This project was partially funded by the National Science Foundation Grant DMS-2008610.
+This project was partially funded by the National Science Foundation Grants DMS-2008610 and DMS-2136198.
 
 ## License
 Unless noted otherwise, the code is released under the following license (see also `LICENSE` file)
