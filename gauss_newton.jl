@@ -194,16 +194,17 @@ end
 #  F(x + \epsilon \delta x) = F(x) + \epsilon DF(x)\delta x + \mathcal{O}(\epsilon^2).
 # $$
 # More concretely, if $\epsilon$ is too large, Taylor's theorem doesn't hold, if
-# it is too small then we encounter problems with machine precision, so if
-# divide the purportedly $\mathcal{O}(\epsilon^2)$ terrm by $\epsilon^2$ we
+# it is too small then we encounter problems with machine precision, so if we
+# divide the purportedly $\mathcal{O}(\epsilon^2)$ term by $\epsilon^2$ we
 # should get something approximately constant (for values of $\epsilon$ that are
 # neither too big or too small)
 unpack(x)  = (σ=x[1:n𝐄],us=reshape(x[(n𝐄+1):end],n𝐕,N)) # go from x to σ,us
 pack(σ,us) = vcat(σ,vec(us)) # go from (σ,us) to x
 noiselevel = 5/100 
 Random.seed!(17) # initialize seed
+Hs_noisy = Hs_true + maximum(Hs_true)*noiselevel*randn(size(Hs_true))
 R(x)  = fwd(unpack(x)...) - rhs(fs,Hs_true)
-Rnoisy(x)  = fwd(unpack(x)...) - rhs(fs,Hs_true + maximum(Hs_true)*noiselevel*randn(size(Hs_true)))
+Rnoisy(x)  = fwd(unpack(x)...) - rhs(fs,Hs_noisy)
 DR(x) = jacobian(unpack(x)...)
 
 ## test Jacobian against Taylor's theorem
