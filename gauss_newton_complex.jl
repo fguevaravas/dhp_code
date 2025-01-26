@@ -29,22 +29,22 @@ indisk(c,r,x) = (x[1]-c[1])^2 + (x[2]-c[2])^2  <= r^2
 ## frequency
 ω = 1;
 
+## reference conductivity (also our initial guess)
+σ_ref_r = ones(n𝐄)
+σ_ref_i = zeros(n𝐄)
+
 ## true conductivty real part
-σ_true_r = 1 .+ [ 1 + indisk((0.2,0.2),0.1,(x,y)) + 
+σ_true_r = σ_ref_r + [ 1 + indisk((0.2,0.2),0.1,(x,y)) + 
      -0.5indisk((0.5,0.5),0.2,(x,y)) +
         2indisk((0.75,0.6),0.2,(x,y)) 
     for  (x,y) ∈ zip(x𝐄,y𝐄) ]
 
 ## true conductivity imaginary part
-σ_true_i =
+σ_true_i = σ_ref_i +
    [    0.5indisk((0.2,0.8),0.1,(x,y)) + 
         0.2indisk((0.8,0.2),0.1,(x,y)) -
         0.3indisk((0.5,0.5),0.1,(x,y)) 
     for  (x,y) ∈ zip(x𝐄,y𝐄) ]
-
-## reference conductivity (also our initial guess)
-σ_ref_r = ones(n𝐄)
-σ_ref_i = zeros(n𝐄)
 
 L(σ) = ∇'*diagm(σ)*∇ # Laplacian
 
@@ -255,6 +255,7 @@ function gauss_newton(R,DR,x0;
         ## backtracking line search
         t = 1; k = 1
         for k=1:btmaxiter
+            ## note: the quantity ∇f'*dx should be real
             (f(x+t*dx)-f(x) < btα*t*real(∇f'*dx)) && break
             t*=β
             (k==btmaxiter) && println("Warning: max backtracking limit hit")
@@ -304,10 +305,10 @@ plot(ϵs, jacobian_test(R,DR,x_true,randn(2n𝐄+3N*n𝐕)),
       scale=:log10,xlabel="ϵ",ylabel="Taylor error (should be const)")
 
 # ## Reconstructions with and without noise
-X,objfun1=gauss_newton(R,DR,x_ref;α=1e-4,tol=1e-6,maxiter=50)
+X,objfun1=gauss_newton(R,DR,x_ref;α=1e-2,tol=1e-6,maxiter=10)
 xrec1 = unpack(X)
 
-X,objfun2=gauss_newton(Rnoisy,DR,x_ref;α=5e-3,tol=1e-6,maxiter=50)
+X,objfun2=gauss_newton(Rnoisy,DR,x_ref;α=1e-2,tol=1e-6,maxiter=10)
 xrec2 = unpack(X)
 
 p1 = plot(objfun1,yscale=:log10,label="noiseless")
