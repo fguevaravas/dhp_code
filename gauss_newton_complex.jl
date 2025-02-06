@@ -1,8 +1,7 @@
-# # Reconstructions using Gauss-Newton method
-# Here we give an example of reconstructing the conductivity by successive
-# linearization in the case where the conductivity is complex and we
-# have measurements available at the zero frequency (DC) and a
-# frequency $\omega \neq 0$
+# # Reconstructions using Gauss-Newton method with complex data
+# Here we give an example of reconstructing a complex conductivity by
+# successive linearization in the case where  we have measurements available at
+# the zero frequency (DC) and a frequency $\omega \neq 0$
 
 # ## Graph setup
 # Define graph and graph Laplacian
@@ -136,6 +135,7 @@ function fwd(σr,σi,u0s,u1s,u1sb)
  end
  return F
 end
+
 ## Assemble rhs (we assume same BC for DC and AC measurements)
 function rhs(fs,Hs0,Hs1) 
  N = size(fs,2) # number of Dirichlet boundary conditions
@@ -163,26 +163,27 @@ function plot_edge_quantity(f;lw=6,clims=extrema(f))
     end
     plot!(p,legend=:none, aspect_ratio=:equal, axis=false, grid=false)
     return p
-  end
+end
 
-  h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=extrema(σ_true_r),
-                 xlims=(1,1.1), label="", c=:thermal, framestyle=:none)
-  l = @layout [ a b{0.1w} ]
-  p1 = plot(
-    plot_edge_quantity(σ_true_r,lw=4), h2,
-    layout=l, size=(400,300)
-  )
+h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=extrema(σ_true_r),
+               xlims=(1,1.1), label="", c=:thermal, framestyle=:none)
+l = @layout [ a b{0.1w} ]
+p1 = plot(
+  plot_edge_quantity(σ_true_r,lw=4), h2,
+  layout=l, size=(400,300)
+)
 
-  h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=extrema(σ_true_i),
-                 xlims=(1,1.1), label="", c=:thermal, framestyle=:none)
-  l = @layout [ a b{0.1w} ]
-  p2 = plot(
-    plot_edge_quantity(σ_true_i,lw=4), h2,
-    layout=l, size=(400,300)
-  )
-  plot(p1,p2,layout=grid(1,2))
+h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=extrema(σ_true_i),
+               xlims=(1,1.1), label="", c=:thermal, framestyle=:none)
+l = @layout [ a b{0.1w} ]
+p2 = plot(
+  plot_edge_quantity(σ_true_i,lw=4), h2,
+  layout=l, size=(400,300)
+)
+plot(p1,p2,layout=grid(1,2))
+savefig(p1,"sigma_true_r.png")
+savefig(p2,"sigma_true_i.png")
 
-## voltages
 function plot_voltages(us)
   clims = extrema(abs.(us))
   p = plot(
@@ -194,31 +195,42 @@ function plot_voltages(us)
   )
 end
 
+function plot_dissipated_power(Hs)
+  Hclims = extrema(Hs)
+  dpi=400; h=1*dpi; cw = h/4; 
+  h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=Hclims,
+                 xlims=(1,1.1), label="", c=:thermal, framestyle=:none,
+                 size=(cw,h),dpi=dpi)
+  p1 = plot_edge_quantity(Hs[:,1],lw=4,clims=Hclims)
+  plot!(p1,size=(h,h),dpi=dpi) 
+  p2 = plot_edge_quantity(Hs[:,2],lw=4,clims=Hclims)
+  plot!(p2,size=(h,h),dpi=dpi) 
+  return (p1,p2,h2)
+end
+
 # ## Calculate the true state and data
 u0s_true, u1s_true, Hs0_true, Hs1_true = state(σ_true_r,σ_true_i) # true data
 u0s_ref,  u1s_ref,  Hs0_ref,  Hs1_ref  = state(σ_ref_r,σ_ref_i) # data for a reference conductivity
 
+# ## Plot of voltages
+pv0 = plot_voltages(u0s_true)
+pv1 = plot_voltages(u1s_true)
+plot(pv0,pv1,layout = @layout [a b])
+# ## Plot of dissipated power data
+p0 = plot_dissipated_power(Hs0_true)
+p1 = plot_dissipated_power(Hs1_true)
 
-## we should plot some voltages here
-##pv = plot_voltages(us_true)
-##Hclims = extrema(Hs_true)
-##dpi=400; h=1*dpi; cw = h/4; 
-##h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=Hclims,
-##               xlims=(1,1.1), label="", c=:thermal, framestyle=:none,
-##               size=(cw,h),dpi=dpi)
-##l = @layout [ a b c{0.1w} ]
-##p1 = plot_edge_quantity(Hs_true[:,1],lw=4,clims=Hclims)
-##plot!(p1,size=(h,h),dpi=dpi) 
-##p2 = plot_edge_quantity(Hs_true[:,2],lw=4,clims=Hclims)
-##plot!(p2,size=(h,h),dpi=dpi) 
-##
-#### output
-##savefig(h2,"dissipated_power_cbar.png")
-##savefig(p1,"dissipated_power1.png")
-##savefig(p2,"dissipated_power2.png")
-##plot(p1,p2,h2,layout=l, size=(700,300))
-##
+## output
+l = @layout [ a b c{0.1w} ]
+savefig(p0[3],"cplx0_dissipated_power_cbar.png")
+savefig(p0[1],"cplx0_dissipated_power1.png")
+savefig(p0[2],"cplx0_dissipated_power2.png")
+plot(p0...,layout=l, size=(700,300))
 
+savefig(p1[3],"cplx1_dissipated_power_cbar.png")
+savefig(p1[1],"cplx1_dissipated_power1.png")
+savefig(p1[2],"cplx1_dissipated_power2.png")
+plot(p1...,layout=l, size=(700,300))
 
 # ## Gauss-Newton method
 # Here we solve the optimization problem
@@ -276,8 +288,8 @@ end
 # should get something approximately constant (for values of $\epsilon$ that are
 # neither too big or too small)
 function unpack(x)
- σr=x[1:n𝐄]
- σi=x[n𝐄 .+ (1:n𝐄)]
+ σr=real(x[1:n𝐄])
+ σi=real(x[n𝐄 .+ (1:n𝐄)])
  us = permutedims(reshape(x[2n𝐄 .+ (1:3N*n𝐕)],n𝐕,3,N),[1,3,2])
  return (σr,σi,us0=us[:,:,1],us1=us[:,:,2],us1b=us[:,:,3])
 end
@@ -318,23 +330,35 @@ p3 = plot(xrec1.σi,label="rec"); p3=plot!(xrec2.σi,label="noisy"); p3=plot!(σ
 plot(p1,p2,p3,layout=grid(1,3))
 
 # ## Plot for paper
-##relerr(a,b) = norm(a-b)/norm(a)
-##println("relative error σrec1 = ",100*relerr(σ_true,σrec1)," %")
-##println("relative error σrec2 = ",100*relerr(σ_true,σrec2)," %")
-##clims = extrema([σrec1;σrec2])
-##
-##l = @layout [ grid(1,2) a{0.1w} ]; dpi=400; h=1*dpi; cw = h/4; 
-#### Colorbar
-##h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=clims,
-##                 xlims=(1,1.1), label="", c=:thermal, framestyle=:none,
-##                 size=(cw,h),dpi=dpi)
-##p1 = plot_edge_quantity(σrec1,lw=4,clims=clims)
-##plot!(p1,size=(h,h),dpi=dpi) 
-##p2 = plot_edge_quantity(σrec2,lw=4,clims=clims)
-##plot!(p2,size=(h,h),dpi=dpi) 
-##
-#### output
-##savefig(p1,"sigrec_noiseless.png")
-##savefig(p2,"sigrec_noisy.png")
-##savefig(h2,"sigrec_cbar.png")
-##p = plot(p1,p2,h2,layout=l,size=(700,300))
+relerr(a,b) = norm(a-b)/norm(a)
+println("relative error σrec1 = ",100*relerr(σ_true_r+im*ω*σ_true_i,xrec1.σr+im*ω*xrec1.σi)," %")
+println("relative error σrec2 = ",100*relerr(σ_true_r+im*ω*σ_true_i,xrec2.σr+im*ω*xrec2.σi)," %")
+
+function plot_reconstructions(σrec1,σrec2)
+  clims = extrema([σrec1 σrec2])
+  
+  l = @layout [ grid(1,2) a{0.1w} ]; dpi=400; h=1*dpi; cw = h/4; 
+  ## Colorbar
+  h2 = scatter([0,0], [0,1], zcolor=[0,1], clims=clims,
+                   xlims=(1,1.1), label="", c=:thermal, framestyle=:none,
+                   size=(cw,h),dpi=dpi)
+  p1 = plot_edge_quantity(σrec1,lw=4,clims=clims)
+  plot!(p1,size=(h,h),dpi=dpi) 
+  p2 = plot_edge_quantity(σrec2,lw=4,clims=clims)
+  return p1,p2,h2
+end
+
+## output
+p1,p2,h2 = plot_reconstructions(xrec1.σr,xrec2.σr)
+savefig(p1,"sigrec_r_noiseless.png")
+savefig(p2,"sigrec_r_noisy.png")
+savefig(h2,"sigrec_r_cbar.png")
+z1 = plot(p1,p2,h2,layout=l,size=(700,300))
+
+p1,p2,h2 = plot_reconstructions(xrec1.σi,xrec2.σi)
+savefig(p1,"sigrec_i_noiseless.png")
+savefig(p2,"sigrec_i_noisy.png")
+savefig(h2,"sigrec_i_cbar.png")
+z2 = plot(p1,p2,h2,layout=l,size=(700,300))
+
+plot(z1,z2,layout=grid(2,1))
