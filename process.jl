@@ -1,7 +1,7 @@
 # This file converts the scripts into Jupyter notebooks
 import Literate
 
-inputs = ["thermal_noise","example1","example2","example3","example4","gauss_newton"]
+inputs = ["thermal_noise","example1","example2","example3","example4","gauss_newton","gauss_newton_complex"]
 outdir = "notebooks"
 
 for i ∈ inputs

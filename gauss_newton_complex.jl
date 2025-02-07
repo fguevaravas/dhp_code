@@ -30,7 +30,7 @@ indisk(c,r,x) = (x[1]-c[1])^2 + (x[2]-c[2])^2  <= r^2
 
 ## reference conductivity (also our initial guess)
 σ_ref_r = ones(n𝐄)
-σ_ref_i = zeros(n𝐄)
+σ_ref_i = ones(n𝐄)
 
 ## true conductivty real part
 σ_true_r = σ_ref_r + [ 1 + indisk((0.2,0.2),0.1,(x,y)) + 
@@ -40,9 +40,8 @@ indisk(c,r,x) = (x[1]-c[1])^2 + (x[2]-c[2])^2  <= r^2
 
 ## true conductivity imaginary part
 σ_true_i = σ_ref_i +
-   [    0.5indisk((0.2,0.8),0.1,(x,y)) + 
-        0.2indisk((0.8,0.2),0.1,(x,y)) -
-        0.3indisk((0.5,0.5),0.1,(x,y)) 
+   [    0.5indisk((0.3,0.7),0.1,(x,y)) + 
+        0.5indisk((0.7,0.3),0.1,(x,y))  
     for  (x,y) ∈ zip(x𝐄,y𝐄) ]
 
 L(σ) = ∇'*diagm(σ)*∇ # Laplacian
@@ -209,8 +208,8 @@ function plot_dissipated_power(Hs)
 end
 
 # ## Calculate the true state and data
-u0s_true, u1s_true, Hs0_true, Hs1_true = state(σ_true_r,σ_true_i) # true data
-u0s_ref,  u1s_ref,  Hs0_ref,  Hs1_ref  = state(σ_ref_r,σ_ref_i) # data for a reference conductivity
+u0s_true, u1s_true, Hs0_true, Hs1_true = state(σ_true_r,σ_true_i); # true data
+u0s_ref,  u1s_ref,  Hs0_ref,  Hs1_ref  = state(σ_ref_r,σ_ref_i); # data for a reference conductivity
 
 # ## Plot of voltages
 pv0 = plot_voltages(u0s_true)
@@ -297,7 +296,7 @@ function pack(σr,σi,us0,us1,us1b)
  us = permutedims(cat(us0,us1,us1b,dims=3),[1,3,2])
  return vcat(σr,σi,us[:])
 end
-noiselevel = 5/100 
+noiselevel = 1/100 
 Random.seed!(17) # initialize seed
 Hs0_noisy = Hs0_true + maximum(Hs0_true)*noiselevel*randn(size(Hs0_true))
 Hs1_noisy = Hs1_true + maximum(Hs1_true)*noiselevel*randn(size(Hs1_true))
@@ -317,7 +316,7 @@ plot(ϵs, jacobian_test(R,DR,x_true,randn(2n𝐄+3N*n𝐕)),
       scale=:log10,xlabel="ϵ",ylabel="Taylor error (should be const)")
 
 # ## Reconstructions with and without noise
-X,objfun1=gauss_newton(R,DR,x_ref;α=1e-2,tol=1e-6,maxiter=10)
+X,objfun1=gauss_newton(R,DR,x_ref;α=2e-3,tol=1e-6,maxiter=10)
 xrec1 = unpack(X)
 
 X,objfun2=gauss_newton(Rnoisy,DR,x_ref;α=1e-2,tol=1e-6,maxiter=10)
@@ -333,6 +332,10 @@ plot(p1,p2,p3,layout=grid(1,3))
 relerr(a,b) = norm(a-b)/norm(a)
 println("relative error σrec1 = ",100*relerr(σ_true_r+im*ω*σ_true_i,xrec1.σr+im*ω*xrec1.σi)," %")
 println("relative error σrec2 = ",100*relerr(σ_true_r+im*ω*σ_true_i,xrec2.σr+im*ω*xrec2.σi)," %")
+println("relative error σrec1 / real = ",100*relerr(σ_true_r,xrec1.σr)," %")
+println("relative error σrec2 / real = ",100*relerr(σ_true_r,xrec2.σr)," %")
+println("relative error σrec1 / imag = ",100*relerr(σ_true_i,xrec1.σi)," %")
+println("relative error σrec2 / imag = ",100*relerr(σ_true_i,xrec2.σi)," %")
 
 function plot_reconstructions(σrec1,σrec2)
   clims = extrema([σrec1 σrec2])
