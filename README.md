@@ -14,7 +14,9 @@ A list of the files that will be converted to Jupyter notebooks
 * `example3.jl`: a case where the linearized inverse problem is ill-conditioned
 * `example4.jl`: an illustration of the complex conductivity result
 * `thermal_noise.jl`: code comparing thermal noise and dissipated power
-* `gauss_newton.jl`: an illustration of how to use Gauss-Newton method to solve the problem
+* `gauss_newton.jl`: an illustration of how to use Gauss-Newton method to solve the inverse problem of finding a real conductivity from dissipated power
+* `gauss_newton_complex.jl`: an illustration of how to use Gauss-Newton method to solve the problem of finding a complex conductivity from dissipated power
+
 
 The generated Jupyter notebooks are available in the directory `notebooks`
 
